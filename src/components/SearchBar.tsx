@@ -1,13 +1,10 @@
 import { useSearch } from '../customHooks/useSearch'
 
 const SearchBar = () => {
-  const { characterName, searchCharacter } = useSearch()
+  const { searchTerm, handleChange } = useSearch()
 
-  const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    searchCharacter(event.target.value)
-  }
 
-  return <input type='text' value={characterName} onChange={handleChange} />
+  return <input type='text' value={searchTerm} onChange={handleChange} />
 }
 
 export default SearchBar
