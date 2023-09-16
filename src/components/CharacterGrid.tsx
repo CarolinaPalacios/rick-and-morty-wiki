@@ -1,19 +1,16 @@
-import { useGetCharacterCollection } from './customHooks/useCharacter'
+import type { Character } from '../types/API'
+import { useNavigate } from 'react-router-dom'
 
-const CharacterGrid = () => {
-  const { collection, isLoading, isError } = useGetCharacterCollection()
+interface Props {
+  characters: Character[]
+}
 
-  if (isLoading) {
-    return <div>Loading...</div>
-  }
-
-  if (isError) {
-    return <div>Algo salió mal</div>
-  }
+const CharacterGrid = ({ characters }: Props) => {
+  const navigate = useNavigate()
 
   return (
     <div>
-      {collection.map((character) => {
+      {characters.map((character) => {
         return (
           <div key={character.id}>
             <h2>{character.name}</h2>
@@ -21,8 +18,11 @@ const CharacterGrid = () => {
               {character.status} — {character.species}
             </h3>
             <img src={character.image} alt={`Photo of ${character.name}`} />
-            <h3>Last known location: {character.lastKnownLocation}</h3>
             <h3>First seen in: {character.firstSeenIn}</h3>
+            <h3>Last known location: {character.location?.name}</h3>
+            <button onClick={() => navigate(`/character/${character.id}`)}>
+              View More
+            </button>
           </div>
         )
       })}

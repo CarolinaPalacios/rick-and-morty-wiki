@@ -1,92 +1,84 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
-import axios from 'axios'
+import { fetchCharacterCollection, FetchCharacterCollectionArgs, fetchCharacterDetailById } from '../../services/characterService'
+import { setPagingInfo } from './pagingSlice'
 
+import type { PayloadAction } from '@reduxjs/toolkit'
 import type { RootState } from '../store'
-import type { CharacterType, RawCharacter } from '../../types/character'
-import type { Episode } from '../../types/episode'
+import type { Character } from '../../types/API'
 
-const { VITE_BASE_API_URL } = import.meta.env
+export const getCharacterCollection = createAsyncThunk(
+  'character/getCharacterCollection',
+  async ({ name, page }: FetchCharacterCollectionArgs, thunkAPI) => {
+    const { collection, paging } = await fetchCharacterCollection({
+      name,
+      page
+    })
+    thunkAPI.dispatch(setPagingInfo(paging))
 
-export const fetchCharacterCollection = createAsyncThunk(
-  'character/fetchCharacterCollection',
-  async () => {
-    const { data }: { data: { results: RawCharacter[] } } = await axios.get(
-      `${VITE_BASE_API_URL}/character`
-    )
-
-    const transformedCharacterList: CharacterType[] = await Promise.all(
-      data.results.map(async (character: RawCharacter) => {
-        const { data }: { data: Episode } = await axios.get(
-          character.episode[0]
-        )
-        /* eslint-disable */
-        const { origin, location, episode, url, created, ...restOfCharacter } =
-          character
-        /* eslint-enable */
-        return {
-          ...restOfCharacter,
-          lastKnownLocation: character.location.name,
-          firstSeenIn: data.name,
-        }
-      })
-    )
-
-    return transformedCharacterList
+    return collection
   }
 )
 
-type LoadingStatus = 'idle' | 'loading' | 'succeeded' | 'failed'
-type ErrorStatus = string | undefined | null
+export const getCharacterDetailById = createAsyncThunk(
+  'character/getCharacterDetailById',
+  async (id: number) => {
+    const character = await fetchCharacterDetailById(id)
+    return character
+  }
+)
 
 interface CharacterState {
-  collection: CharacterType[]
-  collectionStatus: LoadingStatus
-  collectionError: ErrorStatus
-  detail: CharacterType
-  detailStatus: LoadingStatus
-  detailError: ErrorStatus
+  collection: Character[]
+  detail: Character
+  targeted: string
+  loading: 'idle' | 'pending' | 'succeeded' | 'failed'
 }
 
 const initialState: CharacterState = {
   collection: [],
-  collectionStatus: 'idle',
-  collectionError: null,
-  detail: {} as CharacterType,
-  detailStatus: 'idle',
-  detailError: null,
+  detail: {} as Character,
+  targeted: '',
+  loading: 'idle'
 }
 
-const characterSlice = createSlice({
+export const characterSlice = createSlice({
   name: 'character',
   initialState,
-  reducers: {},
-  extraReducers: (builder) => {
-    builder
-      .addCase(fetchCharacterCollection.pending, (state) => {
-        state.collectionStatus = 'loading'
-      })
-      .addCase(fetchCharacterCollection.fulfilled, (state, action) => {
-        state.collectionStatus = 'succeeded'
-        state.collection = action.payload
-      })
-      .addCase(fetchCharacterCollection.rejected, (state, action) => {
-        state.collectionStatus = 'failed'
-        state.collectionError = action.error.message
-      })
+  reducers: {
+    setTargetedCharacter: (state, action: PayloadAction<string>) => {
+      state.targeted = action.payload
+    }
   },
+  extraReducers: builder => {
+    builder
+      .addCase(
+        getCharacterCollection.fulfilled,
+        (state, action: PayloadAction<Character[]>) => {
+          state.collection = action.payload
+          state.loading = 'succeeded'
+        }
+      )
+      .addCase(getCharacterCollection.pending, (state) => {
+        state.loading = 'pending'
+      })
+      .addCase(getCharacterCollection.rejected, (state) => {
+        state.loading = 'failed'
+      })
+      .addCase(getCharacterDetailById.pending, (state) => {
+        state.loading = 'pending'
+      })
+      .addCase(getCharacterDetailById.fulfilled, (state, action: PayloadAction<Character>) => {
+        state.detail = action.payload
+        state.loading = 'succeeded'
+      })
+      .addCase(getCharacterDetailById.rejected, (state) => {
+        state.loading = 'failed'
+      })
+  }
 })
 
-export const selectCharacterCollection = (state: RootState) =>
-  state.character.collection
-export const selectCollectionStatus = (state: RootState) =>
-  state.character.collectionStatus
-export const selectCollectionError = (state: RootState) =>
-  state.character.collectionError
-export const selectCharacterDetail = (state: RootState) =>
-  state.character.detail
-export const selectDetailStatus = (state: RootState) =>
-  state.character.detailStatus
-export const selectDetailError = (state: RootState) =>
-  state.character.detailError
+export const { setTargetedCharacter } = characterSlice.actions
+
+export const selectCharacter = (state: RootState) => state.character
 
 export default characterSlice.reducer
