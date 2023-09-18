@@ -1,6 +1,8 @@
 import { configureStore, combineReducers } from '@reduxjs/toolkit'
 import characterReducer from './slice/characterSlice'
 import pagingReducer from './slice/pagingSlice'
+import locationReducer from './slice/locationSlice'
+import episodeReducer from './slice/episodeSlice'
 import { persistStore, persistReducer } from 'redux-persist'
 import storage from 'redux-persist/lib/storage'
 import thunk from 'redux-thunk'
@@ -14,6 +16,8 @@ const persistConfig = {
 const rootReducer = combineReducers({
   character: characterReducer,
   paging: pagingReducer,
+  location: locationReducer,
+  episode: episodeReducer
 })
 
 const persistedReducer = persistReducer(persistConfig, rootReducer)

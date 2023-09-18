@@ -12,6 +12,7 @@ const Home = () => {
 
   return (
     <div>
+      <h1>Rick and Morty Wiki</h1>
       <SearchBar />
       {isLoading ? <p>Loading...</p>
         : (

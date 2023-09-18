@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useCallback } from 'react'
 import { useAppDispatch, useAppSelector } from '../store/hooks/useStore'
 import {
   selectCharacter,
@@ -11,29 +11,23 @@ import { debounce } from 'lodash'
 export const useSearch = () => {
   const dispatch = useAppDispatch()
   const { targeted: characterName } = useAppSelector(selectCharacter)
-  const [searchTerm, setSearchTerm] = useState('')
 
-  const searchCharacter = (targetedCharacter: string) => {
-    dispatch(resetPagingInfo())
-    dispatch(setTargetedCharacter(targetedCharacter))
-  }
-
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const debouncedSearch = useCallback(
     debounce((characterName: string) => {
-      searchCharacter(characterName);
+      dispatch(resetPagingInfo())
+      dispatch(setTargetedCharacter(characterName))
     }, 1000),
     [debounce]
   );
 
-  const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const { value } = event.target
-    setSearchTerm(value)
-    debouncedSearch(value)
+
+  const searchCharacter = (targetedCharacter: string) => {
+    debouncedSearch(targetedCharacter)
   }
 
   return {
     characterName,
-    handleChange,
-    searchTerm
+    searchCharacter
   }
 }

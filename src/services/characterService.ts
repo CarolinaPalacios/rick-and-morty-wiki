@@ -8,7 +8,7 @@ export interface FetchCharacterCollectionArgs {
   page?: number | null
 }
 
-const formatCollectionWithFirstSeenIn = async (collection: Character[]): Promise<Character[]> => {
+export const formatCollectionWithFirstSeenIn = async (collection: Character[]): Promise<Character[]> => {
   return await Promise.all(
     collection.map(async (character) => {
       const { data }: { data: Episode } = await axios.get(character.episode[0])

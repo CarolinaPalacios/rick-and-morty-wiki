@@ -1,10 +1,17 @@
-import { useSearch } from '../customHooks/useSearch'
+import { useState } from 'react'
+import { useSearch } from "../customHooks/useSearch"
 
 const SearchBar = () => {
-  const { searchTerm, handleChange } = useSearch()
+  const [characterName, setCharacterName] = useState('')
+  const { searchCharacter } = useSearch()
 
+  const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const { value } = event.target
+    setCharacterName(value)
+    searchCharacter(value)
+  }
 
-  return <input type='text' value={searchTerm} onChange={handleChange} />
+  return <input type='text' value={characterName} onChange={handleChange} />
 }
 
 export default SearchBar

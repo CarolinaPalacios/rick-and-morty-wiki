@@ -42,6 +42,26 @@ export interface Episode {
   name: string
   air_date: string
   episode: string
+  characters: Character[]
+  url: string
+  created: Date
+}
+
+export interface LocationDetail {
+  id: number
+  name: string
+  type: string
+  dimension: string
+  residents: Character[]
+  url: string
+  created: Date
+}
+
+export interface EposideDetail {
+  id: number
+  name: string
+  air_date: string
+  episode: string
   characters: string[]
   url: string
   created: Date
