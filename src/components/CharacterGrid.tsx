@@ -1,16 +1,21 @@
-import type { Character } from '../types/API'
+import type { Character, SerializedError } from '../types/API'
 import { useNavigate } from 'react-router-dom'
 
 interface Props {
   characters: Character[]
+  error?: SerializedError
 }
 
-const CharacterGrid = ({ characters }: Props) => {
+const CharacterGrid = ({ characters, error }: Props) => {
   const navigate = useNavigate()
 
+  if (characters.length === 0) {
+    return <p>No characters found</p>
+  }
 
   return (
     <ul>
+      {error?.status === 404 && <h4>{error?.message}</h4>}
       {characters.map((character) => {
         return (
           <li key={character.id}>

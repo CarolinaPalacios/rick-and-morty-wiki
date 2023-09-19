@@ -8,3 +8,16 @@ export const getPageNumber = (url: string): number | null => {
 
   return null
 }
+
+import type { SerializedError } from '../types/API'
+
+export const isSerializedError = (
+  payload: unknown
+): payload is SerializedError => {
+  return (
+    typeof payload === 'object' &&
+    payload !== null &&
+    'message' in payload &&
+    'status' in payload
+  )
+}

@@ -1,21 +1,39 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
 import { fetchCharacterCollection, FetchCharacterCollectionArgs, fetchCharacterDetailById } from '../../services/characterService'
 import { setPagingInfo } from './pagingSlice'
+import { isSerializedError } from '../../utils/utils'
 
 import type { PayloadAction } from '@reduxjs/toolkit'
 import type { RootState } from '../store'
-import type { Character } from '../../types/API'
+import type { Character, SerializedError } from '../../types/API'
+import { AxiosError } from 'axios'
 
 export const getCharacterCollection = createAsyncThunk(
   'character/getCharacterCollection',
   async ({ name, page }: FetchCharacterCollectionArgs, thunkAPI) => {
-    const { collection, paging } = await fetchCharacterCollection({
-      name,
-      page
-    })
-    thunkAPI.dispatch(setPagingInfo(paging))
+    try {
+      const { collection, paging } = await fetchCharacterCollection({
+        name,
+        page
+      })
 
-    return collection
+      thunkAPI.dispatch(setPagingInfo(paging))
+      thunkAPI.dispatch(cleanError())
+
+      return collection
+    }
+    catch (error) {
+      if (error instanceof AxiosError) {
+        return thunkAPI.rejectWithValue({
+          message: error.response?.data.error,
+          status: error.response?.status ?? 404
+        } satisfies SerializedError)
+      }
+      return thunkAPI.rejectWithValue({
+        message: 'Unfortunately, something went wrong!',
+        status: 500
+      } satisfies SerializedError)
+    }
   }
 )
 
@@ -32,6 +50,7 @@ interface CharacterState {
   detail: Character
   targeted: string
   loading: 'idle' | 'pending' | 'succeeded' | 'failed'
+  error?: SerializedError
 }
 
 const initialState: CharacterState = {
@@ -47,21 +66,31 @@ export const characterSlice = createSlice({
   reducers: {
     setTargetedCharacter: (state, action: PayloadAction<string>) => {
       state.targeted = action.payload
+    },
+    cleanError: state => {
+      state.error = undefined
     }
   },
   extraReducers: builder => {
     builder
       .addCase(
         getCharacterCollection.fulfilled,
-        (state, action: PayloadAction<Character[]>) => {
-          state.collection = action.payload
+        (state, action: PayloadAction<Character[] | undefined>) => {
+          if (action.payload !== undefined) {
+            state.collection = action.payload
+          }
           state.loading = 'succeeded'
         }
       )
       .addCase(getCharacterCollection.pending, (state) => {
         state.loading = 'pending'
       })
-      .addCase(getCharacterCollection.rejected, (state) => {
+      .addCase(getCharacterCollection.rejected, (state, action) => {
+        if (action.meta.rejectedWithValue) {
+          if (isSerializedError(action.payload)) {
+            state.error = action.payload
+          }
+        }
         state.loading = 'failed'
       })
       .addCase(getCharacterDetailById.pending, (state) => {
@@ -77,7 +106,7 @@ export const characterSlice = createSlice({
   }
 })
 
-export const { setTargetedCharacter } = characterSlice.actions
+export const { setTargetedCharacter, cleanError } = characterSlice.actions
 
 export const selectCharacter = (state: RootState) => state.character
 

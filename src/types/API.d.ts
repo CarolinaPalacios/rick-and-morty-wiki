@@ -52,7 +52,7 @@ export interface LocationDetail {
   name: string
   type: string
   dimension: string
-  residents: Character[]
+  residents: string[]
   url: string
   created: Date
 }
@@ -65,4 +65,9 @@ export interface EposideDetail {
   characters: string[]
   url: string
   created: Date
+}
+
+export interface SerializedError {
+  message: string
+  status: number
 }
