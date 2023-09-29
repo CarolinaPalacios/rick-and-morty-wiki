@@ -1,11 +1,11 @@
 import { createSlice } from '@reduxjs/toolkit'
-import { getPageNumber } from '../../utils/utils'
+import { getPageNumber } from '../../utils/paging'
 
 import type { PayloadAction } from '@reduxjs/toolkit'
 import type { RootState } from '../store'
 import type { Info } from '../../types/API'
 
-export interface PagingState {
+interface PagingState {
   count: number
   pages: number
   current: number

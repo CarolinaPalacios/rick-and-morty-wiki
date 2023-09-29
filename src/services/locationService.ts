@@ -17,9 +17,8 @@ export const fetchLocationResidents = async (
 ): Promise<Character[]> => {
   const residentsData = await Promise.all(
     residentsUrls.map(async (residentUrl) => {
-      const residentId = parseInt(residentUrl.split("/").pop()!);
       const { data }: { data: Character } = await axios.get(
-        `${VITE_API_BASE_URL}/character/${residentId}`
+        residentUrl
       );
       const characterWithFirstSeenIn = await formatCollectionWithFirstSeenIn([data]);
 

@@ -14,9 +14,8 @@ export const fetchEpisodeDetail = async (id: number): Promise<EposideDetail> => 
 export const fetchEpisodeCharacters = async (charactersUrls: string[]): Promise<Character[]> => {
   const charactersData = await Promise.all(
     charactersUrls.map(async (characterUrl) => {
-      const characterId = parseInt(characterUrl.split('/').pop()!)
       const { data }: { data: Character } = await axios.get(
-        `${VITE_API_BASE_URL}/character/${characterId}`
+        characterUrl
       );
       const characterWithFirstSeenIn = await formatCollectionWithFirstSeenIn([data]);
       return characterWithFirstSeenIn[0]

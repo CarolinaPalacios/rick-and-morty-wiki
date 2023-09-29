@@ -1,62 +1,61 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
-import { fetchCharacterCollection, FetchCharacterCollectionArgs, fetchCharacterDetailById } from '../../services/characterService'
+import {
+  fetchCharacterCollection,
+  fetchCharacterDetail
+} from '../../services/characterService'
 import { setPagingInfo } from './pagingSlice'
-import { isSerializedError } from '../../utils/utils'
 
 import type { PayloadAction } from '@reduxjs/toolkit'
 import type { RootState } from '../store'
-import type { Character, SerializedError } from '../../types/API'
-import { AxiosError } from 'axios'
+import type { Character, Gender, Status, Species, Type } from '../../types/API'
+import type { FetchCharacterCollectionArgs } from '../../services/services'
+import { cleanError, setError } from './errorSlice'
+import { serializeError } from '../../utils/error'
 
 export const getCharacterCollection = createAsyncThunk(
   'character/getCharacterCollection',
-  async ({ name, page }: FetchCharacterCollectionArgs, thunkAPI) => {
+  async (args: FetchCharacterCollectionArgs, thunkAPI) => {
     try {
-      const { collection, paging } = await fetchCharacterCollection({
-        name,
-        page
-      })
-
+      const { collection, paging } = await fetchCharacterCollection(args)
       thunkAPI.dispatch(setPagingInfo(paging))
       thunkAPI.dispatch(cleanError())
 
       return collection
-    }
-    catch (error) {
-      if (error instanceof AxiosError) {
-        return thunkAPI.rejectWithValue({
-          message: error.response?.data.error,
-          status: error.response?.status ?? 404
-        } satisfies SerializedError)
-      }
-      return thunkAPI.rejectWithValue({
-        message: 'Unfortunately, something went wrong!',
-        status: 500
-      } satisfies SerializedError)
+    } catch (error) {
+      const serializedError = serializeError(error)
+      thunkAPI.dispatch(setError({ error: serializedError }))
     }
   }
 )
 
-export const getCharacterDetailById = createAsyncThunk(
-  'character/getCharacterDetailById',
+export const getCharacterDetail = createAsyncThunk(
+  'character/getCharacterDetail',
   async (id: number) => {
-    const character = await fetchCharacterDetailById(id)
-    return character
+    const detailOfCharacter = await fetchCharacterDetail(id)
+    return detailOfCharacter
   }
 )
+
+export interface Filter {
+  name?: string
+  gender?: Gender
+  status?: Status
+  species?: Species
+  type?: Type
+  [key: string]: string | number | null | undefined
+}
 
 interface CharacterState {
   collection: Character[]
+  filterBy: Filter
   detail: Character
-  targeted: string
   loading: 'idle' | 'pending' | 'succeeded' | 'failed'
-  error?: SerializedError
 }
 
 const initialState: CharacterState = {
   collection: [],
+  filterBy: {},
   detail: {} as Character,
-  targeted: '',
   loading: 'idle'
 }
 
@@ -64,11 +63,20 @@ export const characterSlice = createSlice({
   name: 'character',
   initialState,
   reducers: {
-    setTargetedCharacter: (state, action: PayloadAction<string>) => {
-      state.targeted = action.payload
+    setFilterBy: (
+      state,
+      action: PayloadAction<{ by: string; value: string }>
+    ) => {
+      if (action.payload.by) {
+        state.filterBy[action.payload.by] = action.payload.value
+      }
     },
-    cleanError: state => {
-      state.error = undefined
+    removeFilterBy: (state, action: PayloadAction<{ by: string }>) => {
+      const { [action.payload.by]: _, ...newFilter } = state.filterBy
+      state.filterBy = newFilter
+    },
+    clearFilter: state => {
+      state.filterBy = {}
     }
   },
   extraReducers: builder => {
@@ -76,7 +84,7 @@ export const characterSlice = createSlice({
       .addCase(
         getCharacterCollection.fulfilled,
         (state, action: PayloadAction<Character[] | undefined>) => {
-          if (action.payload !== undefined) {
+          if (action.payload) {
             state.collection = action.payload
           }
           state.loading = 'succeeded'
@@ -85,29 +93,26 @@ export const characterSlice = createSlice({
       .addCase(getCharacterCollection.pending, (state) => {
         state.loading = 'pending'
       })
-      .addCase(getCharacterCollection.rejected, (state, action) => {
-        if (action.meta.rejectedWithValue) {
-          if (isSerializedError(action.payload)) {
-            state.error = action.payload
-          }
-        }
+      .addCase(getCharacterCollection.rejected, (state) => {
         state.loading = 'failed'
       })
-      .addCase(getCharacterDetailById.pending, (state) => {
+      .addCase(
+        getCharacterDetail.fulfilled,
+        (state, action: PayloadAction<Character>) => {
+          state.detail = action.payload
+          state.loading = 'succeeded'
+        }
+      )
+      .addCase(getCharacterDetail.pending, (state) => {
         state.loading = 'pending'
       })
-      .addCase(getCharacterDetailById.fulfilled, (state, action: PayloadAction<Character>) => {
-        state.detail = action.payload
-        state.loading = 'succeeded'
-      })
-      .addCase(getCharacterDetailById.rejected, (state) => {
+      .addCase(getCharacterDetail.rejected, (state) => {
         state.loading = 'failed'
       })
   }
 })
 
-export const { setTargetedCharacter, cleanError } = characterSlice.actions
+export const { setFilterBy, removeFilterBy } = characterSlice.actions
 
 export const selectCharacter = (state: RootState) => state.character
-
 export default characterSlice.reducer

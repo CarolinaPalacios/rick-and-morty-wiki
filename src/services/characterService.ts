@@ -1,37 +1,36 @@
 import axios from "axios";
 import type { Character, Episode, RickAndMortyAPIResponse } from '../types/API'
+import type { FetchCharacterCollectionArgs } from './services'
 
 const { VITE_API_BASE_URL } = import.meta.env
 
-export interface FetchCharacterCollectionArgs {
-  name?: string | null
-  page?: number | null
-}
 
-export const formatCollectionWithFirstSeenIn = async (collection: Character[]): Promise<Character[]> => {
+export const formatCollectionWithFirstSeenIn = async (
+  collection: Character[]
+): Promise<Character[]> => {
   return await Promise.all(
-    collection.map(async (character) => {
+    collection.map(async character => {
       const { data }: { data: Episode } = await axios.get(character.episode[0])
-      return {
-        ...character,
-        firstSeenIn: data.name
-      }
+      return { ...character, firstSeenIn: data.name }
     })
   )
 }
 
-export const buildEndpoint = ({ name, page }: FetchCharacterCollectionArgs) => {
+export const buildEndpoint = (args: FetchCharacterCollectionArgs) => {
   const url = new URL(`${VITE_API_BASE_URL}/character`)
 
-  if (name) url.searchParams.set('name', name)
-
-  if (page) url.searchParams.set('page', page.toString())
-
+  for (const key in args) {
+    if (args[key]) {
+      url.searchParams.append(key, String(args[key]))
+    }
+  }
   return url.toString()
 }
 
-export const fetchCharacterCollection = async ({ name, page }: FetchCharacterCollectionArgs) => {
-  const endpoint = buildEndpoint({ name, page })
+export const fetchCharacterCollection = async (
+  args: FetchCharacterCollectionArgs
+) => {
+  const endpoint = buildEndpoint(args)
   const { data }: { data: RickAndMortyAPIResponse } = await axios.get(endpoint)
 
   const collection = await formatCollectionWithFirstSeenIn(data.results)
@@ -39,9 +38,12 @@ export const fetchCharacterCollection = async ({ name, page }: FetchCharacterCol
   return { collection, paging: data.info }
 }
 
-export const fetchCharacterDetailById = async (id: number): Promise<Character> => {
-  const { data }: { data: Character } = await axios.get(`${VITE_API_BASE_URL}/character/${id}`)
-  const characterWhitFirstSeenIn = await formatCollectionWithFirstSeenIn([data])
+export const fetchCharacterDetail = async (characterId: number) => {
+  const { data }: { data: Character } = await axios.get(
+    `${VITE_API_BASE_URL}/character/${characterId}`
+  )
 
-  return characterWhitFirstSeenIn[0]
+  const collection = await formatCollectionWithFirstSeenIn([data])
+
+  return collection[0]
 }
